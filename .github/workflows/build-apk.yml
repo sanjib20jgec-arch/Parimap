@@ -99,15 +99,16 @@ jobs:
       run: |
         set -u
         REL="app/build/outputs/apk/release"
+        printf '%s\n' \
+          "Signed release APKs of AR Measure (AR + OpenCV measurement app)." \
+          "" \
+          "- **ARMeasure-v1.0-arm64.apk** - recommended: small (36 MB), installs on virtually all ARCore phones (arm64)." \
+          "- **ARMeasure-v1.0.apk** - universal build (162 MB), all ABIs (arm64-v8a / armeabi-v7a / x86 / x86_64)." \
+          "" \
+          "Requires an ARCore-supported device running Android 7.0+." \
+          > /tmp/release-notes.md
         gh release view v1.0 > /dev/null 2>&1 || \
-          gh release create v1.0 \
-            --title "AR Measure v1.0" \
-            --notes "Signed release APKs of AR Measure (AR + OpenCV measurement app).
-
-- **ARMeasure-v1.0-arm64.apk** — recommended: small (36 MB), installs on virtually all ARCore phones (arm64).
-- **ARMeasure-v1.0.apk** — universal build (162 MB), all ABIs (arm64-v8a / armeabi-v7a / x86 / x86_64).
-
-Requires an ARCore-supported device running Android 7.0+."
+          gh release create v1.0 --title "AR Measure v1.0" --notes-file /tmp/release-notes.md
         FILES=""
         if [ -f "$REL/ARMeasure-v1.0-arm64.apk" ]; then FILES="$FILES $REL/ARMeasure-v1.0-arm64.apk"; fi
         if [ -f "$REL/ARMeasure-v1.0.apk" ]; then FILES="$FILES $REL/ARMeasure-v1.0.apk"; fi
