@@ -13,6 +13,15 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        // Optional single-ABI build for a much smaller APK (arm64-v8a only):
+        //   ./gradlew :app:assembleRelease -Parm64Only
+        // Default build stays universal (all ABIs).
+        if (project.hasProperty("arm64Only")) {
+            ndk {
+                abiFilters.add("arm64-v8a")
+            }
+        }
     }
 
     buildTypes {
@@ -45,6 +54,12 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
+    // RecyclerView (measurement history list)
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+    // Gson (measurement history JSON serialization)
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // ARCore
     implementation("com.google.ar:core:1.41.0")

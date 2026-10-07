@@ -18,9 +18,11 @@
         android:theme="@style/Theme.ARMeasure">
 
         <!-- ARCore metadata — tells Play Store this app requires ARCore -->
+        <!-- tools:replace: arsceneview library declares this as "optional", we override to "required" -->
         <meta-data
             android:name="com.google.ar.core"
-            android:value="required" />
+            android:value="required"
+            tools:replace="android:value" />
 
         <!-- Splash / Main Activity -->
         <activity

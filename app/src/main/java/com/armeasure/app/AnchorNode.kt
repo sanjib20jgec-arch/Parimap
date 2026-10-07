@@ -1,27 +1,28 @@
 package com.armeasure.app
 
 import android.content.Context
-import android.graphics.Color
 import com.google.ar.core.Anchor
-import io.github.sceneview.ar.ArSceneView
-import io.github.sceneview.ar.node.ArNode
-import io.github.sceneview.node.Node
+import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Scale
+import io.github.sceneview.node.Node
 
 /**
  * AnchorNode — AR world-এ একটা point represent করে।
  * User যখন screen-এ tap করে, এই node তৈরি হয়।
+ *
+ * SceneView 2.x-e AR node-er base class holo plain [Node] —
+ * engine scene view theke neowa hoy, anchor-er pose theke position set kora hoy.
  */
 class AnchorNode(
     val anchor: Anchor?,
-    private val sceneView: ArSceneView
-) : ArNode() {
+    sceneView: ARSceneView
+) : Node(sceneView.engine) {
 
     init {
-        // Anchor-এর pose থেকে position set করো
+        // Anchor-এর pose থেকে node-এর position set করো
         anchor?.let {
-            this.pose = it.pose
+            this.position = Position(it.pose.tx(), it.pose.ty(), it.pose.tz())
         }
     }
 
@@ -30,8 +31,7 @@ class AnchorNode(
      * যাতে user দেখতে পায় point কোথায় বসেছে।
      */
     fun createVisualMarker(context: Context) {
-        // SceneView-তে simple sphere render
-        // এখানে একটা small node বসাই যেটা measurement point দেখায়
+        // Marker-কে small scale-এ set করো
         this.scale = Scale(0.02f, 0.02f, 0.02f)
     }
 
@@ -45,14 +45,14 @@ class AnchorNode(
 }
 
 /**
- * LineNode — দুইটা AnchorNode-এর মধ্যে একটা visible line draw করে।
+ * LineNode — দুইটা AnchorNode-এর moddhe ekta line draw করে।
  * Measurement line দেখানোর জন্য ব্যবহার হয়।
  */
 class LineNode(
-    private val sceneView: ArSceneView,
+    sceneView: ARSceneView,
     private val startNode: AnchorNode,
     private val endNode: AnchorNode
-) : Node() {
+) : Node(sceneView.engine) {
 
     init {
         // Line position calculate করো (midpoint)

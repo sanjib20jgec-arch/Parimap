@@ -2,8 +2,11 @@ name: Build AR Measure APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "arena/35161c4c-parimap" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -22,6 +25,14 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
+    - name: Install Android SDK components
+      run: |
+        if [ -d "$ANDROID_HOME/cmdline-tools/latest/bin" ]; then
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+        fi
+        yes | sdkmanager --licenses > /dev/null || true
+        sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
     - name: Grant execute permission for gradlew
       run: |
         if [ ! -f "gradlew" ]; then
@@ -29,12 +40,90 @@ jobs:
         fi
         chmod +x gradlew
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace
+    - name: Build Release APK (universal)
+      run: |
+        ./gradlew :app:assembleRelease --stacktrace --console=plain 2>&1 | tee build.log
+        exit "${PIPESTATUS[0]}"
 
-    - name: Upload APK Artifact
+    - name: Sign Release APKs
+      run: |
+        set -euo pipefail
+        SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+        BT="$SDK/build-tools/34.0.0"
+        REL="app/build/outputs/apk/release"
+
+        # Self-signed release key (generated on the fly — do not reuse for store uploads)
+        keytool -genkeypair -v -keystore /tmp/armeasure-release.keystore -storetype PKCS12 \
+          -alias armeasure -keyalg RSA -keysize 2048 -validity 10000 \
+          -storepass armasure123 -keypass armasure123 \
+          -dname "CN=AR Measure, OU=Mobile, O=ARMeasure, L=Dhaka, ST=Dhaka, C=BD"
+
+        sign_apk() {
+          local unsigned="$1" signed="$2"
+          "$BT/zipalign" -f 4 "$unsigned" "$unsigned.aligned"
+          "$BT/apksigner" sign --ks /tmp/armeasure-release.keystore \
+            --ks-pass pass:armasure123 --key-pass pass:armasure123 \
+            --out "$signed" "$unsigned.aligned"
+          "$BT/apksigner" verify --print-certs "$signed"
+        }
+
+        # Keep a copy of the unsigned universal APK: each assembleRelease run cleans
+        # the output directory, so signing must happen after BOTH builds.
+        cp "$REL/app-release-unsigned.apk" /tmp/universal-unsigned.apk
+
+        # arm64-only build (much smaller APK, for direct sharing/testing)
+        ./gradlew :app:assembleRelease -Parm64Only --console=plain 2>&1 | tee -a build.log
+        cp "$REL/app-release-unsigned.apk" /tmp/arm64-unsigned.apk
+
+        # 1) Universal APK — all ABIs (arm64-v8a, armeabi-v7a, x86, x86_64)
+        sign_apk /tmp/universal-unsigned.apk "$REL/ARMeasure-v1.0.apk"
+
+        # 2) arm64-only APK — small, installs on virtually all ARCore phones
+        sign_apk /tmp/arm64-unsigned.apk "$REL/ARMeasure-v1.0-arm64.apk"
+
+        ls -la "$REL"
+
+    - name: Publish build outputs (git blobs + manifest)
+      if: always()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python3 scripts/ci_publish.py build.log \
+          "app/build/outputs/apk/release/ARMeasure-v1.0.apk" \
+          "app/build/outputs/apk/release/ARMeasure-v1.0-arm64.apk" || true
+
+    - name: Create GitHub Release with APKs
+      if: always()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -u
+        REL="app/build/outputs/apk/release"
+        printf '%s\n' \
+          "Signed release APKs of AR Measure (AR + OpenCV measurement app)." \
+          "" \
+          "- **ARMeasure-v1.0-arm64.apk** - recommended: small (36 MB), installs on virtually all ARCore phones (arm64)." \
+          "- **ARMeasure-v1.0.apk** - universal build (162 MB), all ABIs (arm64-v8a / armeabi-v7a / x86 / x86_64)." \
+          "" \
+          "Requires an ARCore-supported device running Android 7.0+." \
+          > /tmp/release-notes.md
+        gh release view v1.0 > /dev/null 2>&1 || \
+          gh release create v1.0 --title "AR Measure v1.0" --notes-file /tmp/release-notes.md
+        FILES=""
+        if [ -f "$REL/ARMeasure-v1.0-arm64.apk" ]; then FILES="$FILES $REL/ARMeasure-v1.0-arm64.apk"; fi
+        if [ -f "$REL/ARMeasure-v1.0.apk" ]; then FILES="$FILES $REL/ARMeasure-v1.0.apk"; fi
+        if [ -n "$FILES" ]; then
+          gh release upload v1.0 $FILES --clobber
+        fi
+        gh release view v1.0 --json name,tagName,url,assets --jq '{name, tag: .tagName, url, assets: [.assets[] | {name, size: .size, url: .url}]}'
+
+    - name: Upload APK Artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: AR-Measure-Debug-APK
-        path: app/build/outputs/apk/debug/app-debug.apk
+        name: AR-Measure-APK
+        path: |
+          app/build/outputs/apk/release/ARMeasure-v1.0.apk
+          app/build/outputs/apk/release/ARMeasure-v1.0-arm64.apk
+          build.log
         retention-days: 7
