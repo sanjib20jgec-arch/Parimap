@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+build/
+
+# Android / IntelliJ
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Build artifacts (APKs are built by CI — see .github/workflows/build-apk.yml)
+*.apk
+*.ap_
+*.aab
+
+# OS
+.DS_Store

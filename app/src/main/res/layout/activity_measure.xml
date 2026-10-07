@@ -7,7 +7,7 @@
     android:background="#000000">
 
     <!-- AR Scene View — camera + AR rendering -->
-    <io.github.sceneview.ar.ArSceneView
+    <io.github.sceneview.ar.ARSceneView
         android:id="@+id/arSceneView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

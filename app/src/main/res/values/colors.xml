@@ -9,4 +9,7 @@
     <color name="text_secondary">#AAAAAA</color>
     <color name="green">#4CAF50</color>
     <color name="yellow">#FFD700</color>
+
+    <!-- Launcher icon (adaptive icon background) -->
+    <color name="ic_launcher_background">#1A1A2E</color>
 </resources>

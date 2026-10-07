@@ -2,8 +2,11 @@ name: Build AR Measure APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "arena/35161c4c-parimap" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -22,6 +25,14 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
+    - name: Install Android SDK components
+      run: |
+        if [ -d "$ANDROID_HOME/cmdline-tools/latest/bin" ]; then
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+        fi
+        yes | sdkmanager --licenses > /dev/null || true
+        sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
     - name: Grant execute permission for gradlew
       run: |
         if [ ! -f "gradlew" ]; then
@@ -29,12 +40,47 @@ jobs:
         fi
         chmod +x gradlew
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace
+    - name: Build Release APK
+      run: |
+        ./gradlew :app:assembleRelease --stacktrace --console=plain 2>&1 | tee build.log
+        exit "${PIPESTATUS[0]}"
+
+    - name: Sign Release APK
+      run: |
+        set -e
+        SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+        BT="$SDK/build-tools/34.0.0"
+        UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
+        ALIGNED="app/build/outputs/apk/release/app-release-aligned.apk"
+        SIGNED="app/build/outputs/apk/release/ARMeasure-v1.0.apk"
+
+        # Self-signed release key (generated on the fly — do not reuse for store uploads)
+        keytool -genkeypair -v -keystore /tmp/armeasure-release.keystore -storetype PKCS12 \
+          -alias armeasure -keyalg RSA -keysize 2048 -validity 10000 \
+          -storepass armasure123 -keypass armasure123 \
+          -dname "CN=AR Measure, OU=Mobile, O=ARMeasure, L=Dhaka, ST=Dhaka, C=BD"
+
+        "$BT/zipalign" -f 4 "$UNSIGNED" "$ALIGNED"
+        "$BT/apksigner" sign --ks /tmp/armeasure-release.keystore \
+          --ks-pass pass:armasure123 --key-pass pass:armasure123 \
+          --out "$SIGNED" "$ALIGNED"
+        "$BT/apksigner" verify --print-certs "$SIGNED"
+        ls -la app/build/outputs/apk/release/
+
+    - name: Publish build outputs (git blobs + manifest)
+      if: always()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python3 scripts/ci_publish.py \
+          "app/build/outputs/apk/release/ARMeasure-v1.0.apk" build.log || true
 
     - name: Upload APK Artifact
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: AR-Measure-Debug-APK
-        path: app/build/outputs/apk/debug/app-debug.apk
+        name: AR-Measure-APK
+        path: |
+          app/build/outputs/apk/release/ARMeasure-v1.0.apk
+          build.log
         retention-days: 7

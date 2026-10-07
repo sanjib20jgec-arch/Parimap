@@ -12,9 +12,10 @@ import androidx.lifecycle.lifecycleScope
 import com.armeasure.app.databinding.ActivityMeasureBinding
 import com.google.ar.core.*
 import com.google.ar.core.exceptions.*
-import io.github.sceneview.ar.ArSceneView
-import io.github.sceneview.ar.node.ArNode
+import io.github.sceneview.ar.ARSceneView
+import io.github.sceneview.gesture.GestureDetector
 import io.github.sceneview.math.Position
+import io.github.sceneview.node.Node
 import kotlinx.coroutines.*
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
@@ -37,7 +38,7 @@ class MeasureActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMeasureBinding
 
     // AR Scene View (SceneView library handles ARCore session)
-    private lateinit var arSceneView: ArSceneView
+    private lateinit var arSceneView: ARSceneView
 
     // Measurement এর জন্য anchor points store করি
     private val anchorPoints = mutableListOf<AnchorNode>()
@@ -124,9 +125,19 @@ class MeasureActivity : AppCompatActivity() {
             }
         }
 
-        // Screen-এ tap করলে anchor বসাও
-        arSceneView.onTapAr = { hitResult, motionEvent ->
-            handleTap(hitResult)
+        // Screen-এ tap করলে AR hit-test kore anchor বসao
+        arSceneView.onGestureListener = object : GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapUp(e: MotionEvent, node: Node?) {
+                val hitResult = arSceneView.hitTestAR(
+                    e.x, e.y,
+                    planeTypes = setOf(
+                        Plane.Type.HORIZONTAL_UPWARD_FACING,
+                        Plane.Type.HORIZONTAL_DOWNWARD_FACING,
+                        Plane.Type.VERTICAL
+                    )
+                )
+                hitResult?.let { handleTap(it) }
+            }
         }
     }
 
