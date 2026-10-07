@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Publish build outputs (APK + build log) into this repository via the GitHub API.
+"""Publish build outputs (APKs + build log) into this repository via the GitHub API.
 
-The APK is stored as a set of chunked git blobs (Git Data API) and a small JSON
+Each artifact is stored as a set of chunked git blobs (Git Data API) and a small JSON
 manifest with the blob SHAs is committed through the Contents API. Everything is
 reachable through api.github.com alone, so the artifacts can be fetched back even
 where the Actions artifact/release CDNs are blocked.
 
-Usage: ci_publish.py <apk-path> <log-path>
+Usage: ci_publish.py <log-path> <artifact1> [artifact2 ...]
 """
 import base64
 import json
@@ -69,22 +69,26 @@ def upload_chunks(path: str, prefix: str):
 
 
 def main():
-    apk_path = sys.argv[1] if len(sys.argv) > 1 else "app/build/outputs/apk/release/app-release-unsigned.apk"
-    log_path = sys.argv[2] if len(sys.argv) > 2 else "build.log"
+    if len(sys.argv) < 2:
+        print("usage: ci_publish.py <log-path> [artifact ...]", file=sys.stderr)
+        sys.exit(2)
+    log_path = sys.argv[1]
+    artifacts = sys.argv[2:]
 
     print(f"Publishing artifacts for {REPO} @ {BRANCH}")
-    apk_shas, apk_size = upload_chunks(apk_path, "apk")
+    files = {}
+    for path in artifacts:
+        name = os.path.basename(path)
+        shas, size = upload_chunks(path, name)
+        files[name] = {"size": size, "blob_shas": shas}
+        print(f"  {name}: {size} bytes in {len(shas)} chunk(s)")
     log_shas, log_size = upload_chunks(log_path, "log")
 
     manifest = {
         "ref": BRANCH,
         "commit": os.environ.get("GITHUB_SHA"),
         "run_id": os.environ.get("GITHUB_RUN_ID"),
-        "apk": {
-            "name": os.path.basename(apk_path) if os.path.exists(apk_path) else None,
-            "size": apk_size,
-            "blob_shas": apk_shas,
-        },
+        "files": files,
         "build_log": {
             "size": log_size,
             "blob_shas": log_shas,

@@ -40,19 +40,17 @@ jobs:
         fi
         chmod +x gradlew
 
-    - name: Build Release APK
+    - name: Build Release APK (universal)
       run: |
         ./gradlew :app:assembleRelease --stacktrace --console=plain 2>&1 | tee build.log
         exit "${PIPESTATUS[0]}"
 
-    - name: Sign Release APK
+    - name: Sign Release APKs
       run: |
-        set -e
+        set -euo pipefail
         SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
         BT="$SDK/build-tools/34.0.0"
-        UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
-        ALIGNED="app/build/outputs/apk/release/app-release-aligned.apk"
-        SIGNED="app/build/outputs/apk/release/ARMeasure-v1.0.apk"
+        REL="app/build/outputs/apk/release"
 
         # Self-signed release key (generated on the fly — do not reuse for store uploads)
         keytool -genkeypair -v -keystore /tmp/armeasure-release.keystore -storetype PKCS12 \
@@ -60,27 +58,40 @@ jobs:
           -storepass armasure123 -keypass armasure123 \
           -dname "CN=AR Measure, OU=Mobile, O=ARMeasure, L=Dhaka, ST=Dhaka, C=BD"
 
-        "$BT/zipalign" -f 4 "$UNSIGNED" "$ALIGNED"
-        "$BT/apksigner" sign --ks /tmp/armeasure-release.keystore \
-          --ks-pass pass:armasure123 --key-pass pass:armasure123 \
-          --out "$SIGNED" "$ALIGNED"
-        "$BT/apksigner" verify --print-certs "$SIGNED"
-        ls -la app/build/outputs/apk/release/
+        sign_apk() {
+          local unsigned="$1" signed="$2"
+          "$BT/zipalign" -f 4 "$unsigned" "$unsigned.aligned"
+          "$BT/apksigner" sign --ks /tmp/armeasure-release.keystore \
+            --ks-pass pass:armasure123 --key-pass pass:armasure123 \
+            --out "$signed" "$unsigned.aligned"
+          "$BT/apksigner" verify --print-certs "$signed"
+        }
+
+        # 1) Universal APK — all ABIs (arm64-v8a, armeabi-v7a, x86, x86_64)
+        sign_apk "$REL/app-release-unsigned.apk" "$REL/ARMeasure-v1.0.apk"
+
+        # 2) arm64-only APK — much smaller, for direct sharing/testing on phones
+        ./gradlew :app:assembleRelease -Parm64Only --console=plain 2>&1 | tee -a build.log
+        sign_apk "$REL/app-release-unsigned.apk" "$REL/ARMeasure-v1.0-arm64.apk"
+
+        ls -la "$REL"
 
     - name: Publish build outputs (git blobs + manifest)
       if: always()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        python3 scripts/ci_publish.py \
-          "app/build/outputs/apk/release/ARMeasure-v1.0.apk" build.log || true
+        python3 scripts/ci_publish.py build.log \
+          "app/build/outputs/apk/release/ARMeasure-v1.0.apk" \
+          "app/build/outputs/apk/release/ARMeasure-v1.0-arm64.apk" || true
 
-    - name: Upload APK Artifact
+    - name: Upload APK Artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: AR-Measure-APK
         path: |
           app/build/outputs/apk/release/ARMeasure-v1.0.apk
+          app/build/outputs/apk/release/ARMeasure-v1.0-arm64.apk
           build.log
         retention-days: 7

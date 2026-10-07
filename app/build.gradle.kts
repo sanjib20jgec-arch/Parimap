@@ -13,6 +13,15 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        // Optional single-ABI build for a much smaller APK (arm64-v8a only):
+        //   ./gradlew :app:assembleRelease -Parm64Only
+        // Default build stays universal (all ABIs).
+        if (project.hasProperty("arm64Only")) {
+            ndk {
+                abiFilters.add("arm64-v8a")
+            }
+        }
     }
 
     buildTypes {
