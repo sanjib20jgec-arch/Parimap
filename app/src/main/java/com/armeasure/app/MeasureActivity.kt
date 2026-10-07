@@ -286,7 +286,7 @@ class MeasureActivity : AppCompatActivity() {
             for (c in 0 until colorEdges.cols()) {
                 val pixel = colorEdges.get(r, c)
                 if (pixel != null && pixel[0] > 0) {
-                    result.put(r, c, doubleArrayOf(0.0, 255.0, 0.0, 200.0)) // Green with alpha
+                    result.put(r, c, 0.0, 255.0, 0.0, 200.0) // Green with alpha
                 }
             }
         }
@@ -413,23 +413,6 @@ class MeasureActivity : AppCompatActivity() {
         binding.tvInstruction.text = text
     }
 
-    override fun onResume() {
-        super.onResume()
-        try {
-            arSceneView.onResume(this)
-        } catch (e: CameraNotAvailableException) {
-            Toast.makeText(this, "Camera available না।", Toast.LENGTH_LONG).show()
-            finish()
-        }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        arSceneView.onPause(this)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        arSceneView.onDestroy(this)
-    }
+    // SceneView 2.x lifecycle-aware — arSceneView automatically onResume/onPause/onDestroy
+    // handle kore (activity lifecycle observe kore), so manual calls are not needed here.
 }
