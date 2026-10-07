@@ -1,16 +1,16 @@
 {
   "ref": "arena/35161c4c-parimap",
-  "commit": "cc1aaaaf553248bc6e8a55acbc1633438c043f31",
-  "run_id": "37651483899",
+  "commit": "9bff8a67f93a17427123df30002bebc33a8ce239",
+  "run_id": "37651877215",
   "apk": {
     "name": null,
     "size": 0,
     "blob_shas": []
   },
   "build_log": {
-    "size": 19364,
+    "size": 23606,
     "blob_shas": [
-      "bb76502d729b0c1cd703cef290adcdb1099e166e"
+      "9d9a4955cdc8a24375138b3022c90ef642578fe1"
     ]
   }
 }
