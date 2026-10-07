@@ -67,12 +67,19 @@ jobs:
           "$BT/apksigner" verify --print-certs "$signed"
         }
 
-        # 1) Universal APK — all ABIs (arm64-v8a, armeabi-v7a, x86, x86_64)
-        sign_apk "$REL/app-release-unsigned.apk" "$REL/ARMeasure-v1.0.apk"
+        # Keep a copy of the unsigned universal APK: each assembleRelease run cleans
+        # the output directory, so signing must happen after BOTH builds.
+        cp "$REL/app-release-unsigned.apk" /tmp/universal-unsigned.apk
 
-        # 2) arm64-only APK — much smaller, for direct sharing/testing on phones
+        # arm64-only build (much smaller APK, for direct sharing/testing)
         ./gradlew :app:assembleRelease -Parm64Only --console=plain 2>&1 | tee -a build.log
-        sign_apk "$REL/app-release-unsigned.apk" "$REL/ARMeasure-v1.0-arm64.apk"
+        cp "$REL/app-release-unsigned.apk" /tmp/arm64-unsigned.apk
+
+        # 1) Universal APK — all ABIs (arm64-v8a, armeabi-v7a, x86, x86_64)
+        sign_apk /tmp/universal-unsigned.apk "$REL/ARMeasure-v1.0.apk"
+
+        # 2) arm64-only APK — small, installs on virtually all ARCore phones
+        sign_apk /tmp/arm64-unsigned.apk "$REL/ARMeasure-v1.0-arm64.apk"
 
         ls -la "$REL"
 
