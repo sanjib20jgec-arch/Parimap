@@ -1,16 +1,25 @@
 {
   "ref": "arena/35161c4c-parimap",
-  "commit": "9bff8a67f93a17427123df30002bebc33a8ce239",
-  "run_id": "37651877215",
+  "commit": "6135df3fbef2ebe28e3c876e20ebfeb10c2430b9",
+  "run_id": "37652633306",
   "apk": {
-    "name": null,
-    "size": 0,
-    "blob_shas": []
+    "name": "ARMeasure-v1.0.apk",
+    "size": 170400802,
+    "blob_shas": [
+      "8acdccd78ea8c7be02284e8ff1decad739c0f965",
+      "ba7e0239aed205cfd6a2318f3a8e19308a6b125b",
+      "021b4decc88b00f06eb4551506856cbf731d991c",
+      "8936f7741eee7e34ccded207e5c924af9cf86058",
+      "87d61db2c83fd38c1744a4a7f4a8abefc21b422f",
+      "133c05c472c8cdd8016bd81d94bc3b204901a850",
+      "2ba656522f893b6c73f2312f8ecc11035d7f4f63",
+      "1c26e0323b8833c7ef26b0cba8ff23fca1c81e8a"
+    ]
   },
   "build_log": {
-    "size": 23606,
+    "size": 3152,
     "blob_shas": [
-      "9d9a4955cdc8a24375138b3022c90ef642578fe1"
+      "36ee9e5d3b70cbbe2e5c71cd9f192df83c6bac49"
     ]
   }
 }
