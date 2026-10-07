@@ -1,7 +1,7 @@
 {
   "ref": "arena/35161c4c-parimap",
-  "commit": "1692d4995f8efe68ff686a40a8fe6a2da85694de",
-  "run_id": "37673456573",
+  "commit": "07a7a7aed95372c8614530ef555d0f040c83b0e5",
+  "run_id": "37675093250",
   "files": {
     "ARMeasure-v1.0.apk": {
       "size": 170400802,
@@ -13,21 +13,21 @@
         "87d61db2c83fd38c1744a4a7f4a8abefc21b422f",
         "133c05c472c8cdd8016bd81d94bc3b204901a850",
         "2ba656522f893b6c73f2312f8ecc11035d7f4f63",
-        "240722a97042354e77220064d73d914fa35e5258"
+        "f9961b5268e6025874ece827e61b5f8ccf9e9d8f"
       ]
     },
     "ARMeasure-v1.0-arm64.apk": {
       "size": 38294743,
       "blob_shas": [
         "8acdccd78ea8c7be02284e8ff1decad739c0f965",
-        "a8d6551335092bd5593b7f0ad5c7ab3ce18b3a88"
+        "bf15fef7dc20ea4d717231b4f5c6e261427fa5a6"
       ]
     }
   },
   "build_log": {
-    "size": 5807,
+    "size": 5808,
     "blob_shas": [
-      "8a1f3fb9c4c84880c801b33390fe5ac10147eb0e"
+      "358ad576f4ef0126ca699f1529d63733a5060a25"
     ]
   }
 }
